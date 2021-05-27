@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "main.py",
+            "type": "python",
+            "request": "launch",
+            "program": "main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "C:\\Users\\Eryk\\Coding\\GitHub\\silence-cutter\\testData\\example1.mp4",
+                // "-o",
+                // "filename2",
+                "-min",
+                "400",
+                // "-end",
+                // "10",
+                // "-start",
+                // "2",
+                "--threshold",
+                "0.01",
+                "-ps"
+            ]
+        }
+    ]
+}
