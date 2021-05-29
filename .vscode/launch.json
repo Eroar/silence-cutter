@@ -11,7 +11,7 @@
             "program": "main.py",
             "console": "integratedTerminal",
             "args": [
-                "C:\\Users\\Eryk\\Coding\\GitHub\\silence-cutter\\testData\\example1.mp4",
+                "C:\\Users\\Eryk\\Coding\\GitHub\\silence-cutter\\testData\\ak.mp4",
                 // "-o",
                 // "filename2",
                 "-min",
@@ -22,7 +22,7 @@
                 // "2",
                 "--threshold",
                 "0.01",
-                "-ps"
+                "-p"
             ]
         }
     ]
