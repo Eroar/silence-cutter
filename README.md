@@ -1,2 +1,3 @@
-# silence-cutter
- Cuts out silence from video files.
+# silence-eraser
+ Python script that cuts out silence from video files.
+ At the moment supports only command line interface.
