@@ -50,11 +50,12 @@ if __name__=="__main__":
     parser.add_argument('input')
     parser.add_argument('-o', '--output')
     parser.add_argument('-min', '--minimalSilence', type=int, default=500, help='minimal silence length in ms')
-    parser.add_argument('-start', '--startPadding', type=int, default=25, help='amount of time that is not cut from the beginning of silence')
-    parser.add_argument('-end', '--endPadding', type=int, default=25, help='amount of time that is not cut from the end of silence')
+    parser.add_argument('-start', '--startPadding', type=int, default=100, help='amount of time that is not cut from the beginning of silence')
+    parser.add_argument('-end', '--endPadding', type=int, default=100, help='amount of time that is not cut from the end of silence')
     parser.add_argument('-t', '--threshold', type=float, default=0.001, help='maximal noise value to be considered as sound')
     parser.add_argument('-p', '--preview', action='store_true', help='previews with the silence cutout')
     parser.add_argument('--threads', type=int, default=1, help='how many threads to use for final video encoding')
+    parser.add_argument('-crf', type=int, default=17, help='crf of ffmpeg h264 encoding')
     args = parser.parse_args()
 
     if args.minimalSilence<args.startPadding+args.endPadding:
@@ -104,4 +105,4 @@ if __name__=="__main__":
         final.preview()
     else:
         print('Writing to file')
-        final.write_videofile(str(outputPath), threads=args.threads, codec='mpeg4')
+        final.write_videofile(str(outputPath), threads=args.threads, codec='libx264', ffmpeg_params=['-crf', args.crf])
