@@ -11,18 +11,22 @@
             "program": "main.py",
             "console": "integratedTerminal",
             "args": [
-                "C:\\Users\\Eryk\\Coding\\GitHub\\silence-cutter\\testData\\ak.mp4",
+                "testData\\ak.mp4",
                 // "-o",
                 // "filename2",
                 "-min",
-                "400",
-                // "-end",
-                // "10",
-                // "-start",
-                // "2",
+                "500",
+                "-end",
+                "100",
+                "-start",
+                "100",
                 "--threshold",
-                "0.01",
-                "-p"
+                "0.001",
+                // "-p",
+                "-crf",
+                "17",
+                "--threads",
+                "4"
             ]
         }
     ]

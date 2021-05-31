@@ -116,4 +116,4 @@ if __name__=="__main__":
         final.preview()
     else:
         print('Writing to file')
-        final.write_videofile(str(outputPath), threads=args.threads, codec='libx264', ffmpeg_params=['-crf', str(args.crf)])
+        final.write_videofile(str(outputPath), threads=args.threads, codec='libx264', rewrite_audio=False, ffmpeg_params=['-crf', str(args.crf)])

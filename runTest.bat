@@ -1,0 +1,1 @@
+main.py testData\ak.mp4 -min 500 -start 100 -end 100 --threads 8 -t 0.001 -crf 17 -v
