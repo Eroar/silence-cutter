@@ -1,40 +1,29 @@
 import argparse
 from moviepy.editor import VideoFileClip, preview, concatenate_videoclips
 from pathlib import Path
-from progress.bar import Bar
 from ClipFFmpeg import concatSubClips, SubClipFFmpeg
 
 SAMPLE_RATE = 12000
 
-
-def findFirstSilence(video_samples, minInRow, threshold, startSearchAt=0, step=1):
+def findFirstSilence(samples, minInRow, startSearchAt=0, step=1):
+    # silence in samples is True value
+    # sound in samples is a False value
     # step other than 1 is untested but might dramatically improve performance
-    silenceStart = -1
-    silenceEnd = -1
-    samplesInRow = 0
-    # algorithm that finds first long enough silence in video
-    for i in range(startSearchAt, len(video_samples), step):
-        if threshold>max(video_samples[i])>-threshold:
-            if samplesInRow==0:
-                silenceStart=i
-                samplesInRow = 1
-            else:
-                samplesInRow+=1*step
-        else:
-            if samplesInRow>0:
-                if samplesInRow>=minInRow:
-                    silenceEnd = i
-                    break
-                else:
-                    samplesInRow = 0
-            else:
-                continue
-    if silenceStart!=-1 and silenceEnd!=-1:
-        found = True
-    else:
-        found=False
-    return (silenceStart, silenceEnd), found
+    while True:
+        try:
+            silenceIndex = samples.index(True,startSearchAt)
+        except ValueError:
+            return (-1,-1), False
+        try:
+            noiseIndex = samples.index(False,silenceIndex)
+        except ValueError:
+            return (silenceIndex, len(samples)-1), True
 
+        if noiseIndex - silenceIndex >= minInRow:
+            return(silenceIndex, noiseIndex-1), True
+        else:
+            startSearchAt = noiseIndex + 1
+            continue
 
 def getTimeStr(timeInMs):
     ms = int(timeInMs %1000)
@@ -54,10 +43,9 @@ if __name__=="__main__":
     parser.add_argument('-start', '--startPadding', type=int, default=100, help='amount of time that is not cut from the beginning of silence')
     parser.add_argument('-end', '--endPadding', type=int, default=100, help='amount of time that is not cut from the end of silence')
     parser.add_argument('-t', '--threshold', type=float, default=0.0001, help='maximal noise value to be considered as sound')
-    # parser.add_argument('-p', '--preview', action='store_true', help='previews with the silence cutout')
     parser.add_argument('-v', '--verbose', action='store_true', help='prints which sections are cut off instead of progress bar')
-    # parser.add_argument('--threads', type=int, default=1, help='how many threads to use for final video encoding')
-    # parser.add_argument('-crf', type=int, default=17, help='crf of ffmpeg h264 encoding')
+    parser.add_argument('--threads', type=int, default=1, help='how many threads to use for final video encoding')
+    parser.add_argument('-crf', type=int, default=17, help='crf of ffmpeg h264 encoding')
     args = parser.parse_args()
 
     if args.minimalSilence<args.startPadding+args.endPadding:
@@ -82,39 +70,41 @@ if __name__=="__main__":
     startSearchAt=0
     # ACTUAL SCRIPT
     video = VideoFileClip(str(inputPath))
-    videoDuration = video.duration *1000
+    audio_samples = video.audio.to_soundarray(fps=SAMPLE_RATE, nbytes=2)
+    samplesLength = len(audio_samples)
+    print('Scaling samples')
+    tresholdSamples = list(map(lambda s: args.threshold>max(s)>-args.threshold, audio_samples))
+
     lastSilenceEndMs = 0
+    lastEndIndex = 0
     clipsWithSound = []
-    if not args.verbose:
-        bar = Bar('finding parts of video with sound', max=video.duration*1000, suffix = '%(percent).1f%% - %(eta)ds')
-        bar.next(n=0)
     while True:
+        if not args.verbose:
+            print('Working:' ,round(lastEndIndex/samplesLength * 100, 2), '%', end='\r')
         if args.verbose:
             print(f'Video time to analyze: {getTimeStr(video.duration*1000)}')
-        samples = video.audio.to_soundarray(fps=SAMPLE_RATE, nbytes=2)
 
-        indices, found = findFirstSilence(samples, minimalSamplesInRow, args.threshold, startSearchAt=lastSilenceEndMs)
+        indices, found = findFirstSilence(tresholdSamples, minimalSamplesInRow, startSearchAt=lastEndIndex)
         if found:
             startMs = indices[0]//(SAMPLE_RATE//1000) + args.startPadding
             endMs = indices[1]//(SAMPLE_RATE//1000) - args.endPadding
-            beforeSilence = SubClipFFmpeg(videoPath=inputPath,startMs=lastSilenceEndMs, endMs=startMs)
-            lastSilenceEndMs = endMs
+            beforeSilence = video.subclip(t_start=getTimeStr(lastSilenceEndMs), t_end=getTimeStr(startMs))
+            clipsWithSound.append(beforeSilence)
             # beforeSilence = video.subclip(t_end=getTimeStr(startMs))
             if args.verbose:
                 print(f'Cutting out:', getTimeStr(lastSilenceEndMs), '-', getTimeStr(startMs))
+            lastSilenceEndMs = endMs
+            lastEndIndex = indices[1]
+            if lastEndIndex == video.duration * SAMPLE_RATE - 1:
+                print('Working:' , '100.00 %', end='\r')
+                break
             else:
-                bar.next(n=endMs)
-            clipsWithSound.append(beforeSilence)
-            continue
+                continue
         else:
             # adds all the remaining part of video
-            clipsWithSound.append(SubClipFFmpeg(videoPath=inputPath, startMs=lastSilenceEndMs, endMs=videoDuration-lastSilenceEndMs))
-            if not args.verbose:
-                bar.next(n=video.duration*1000)
+            clipsWithSound.append(SubClipFFmpeg(videoPath=inputPath, startMs=lastSilenceEndMs, endMs=video.duration*1000-lastSilenceEndMs))
             break
-    if not args.verbose:
-        bar.finish()
     print('Writing to file')
-    concatSubClips(clipsWithSound, outputPath)
-    # else:
-#        final.write_videofile(str(outputPath), threads=args.threads, codec='libx264', rewrite_audio=False, ffmpeg_params=['-crf', str(args.crf)])
+    # concatSubClips(clipsWithSound, outputPath)
+    final = concatenate_videoclips(clipsWithSound)
+    final.write_videofile(str(outputPath), threads=args.threads, codec='libx264', temp_audiofile='outputTEMP_FILE.aac', audio_codec='aac', ffmpeg_params=['-crf', str(args.crf)])
