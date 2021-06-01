@@ -75,6 +75,9 @@ if __name__=="__main__":
     else:
         outputPath = inputPath.with_name("output.mp4")
 
+    for k,v in args.__dict__.items():
+        print(k,':',v)
+
     startSearchAt=0
     # ACTUAL SCRIPT
     video = VideoFileClip(str(inputPath))
