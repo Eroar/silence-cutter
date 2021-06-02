@@ -120,4 +120,4 @@ if __name__ == "__main__":
     # concatSubClips(clipsWithSound, outputPath)
     final = concatenate_videoclips(clipsWithSound)
     final.write_videofile(str(outputPath), threads=args.threads, codec='libx264',
-                          temp_audiofile='outputTEMP_FILE.aac', preset='ultrafast', audio_codec='aac', ffmpeg_params=['-crf', str(args.crf)])
+                          temp_audiofile='outputTEMP_FILE.aac', preset='medium', audio_codec='aac', ffmpeg_params=['-crf', str(args.crf)])
